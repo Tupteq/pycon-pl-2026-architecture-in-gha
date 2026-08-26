@@ -1,0 +1,574 @@
+# reusable-tox.yml — annotated production reference
+
+Source: `github.com/tox-dev/workflow`, commit `1bb961580e20073f66ccb9024f248357f8c8fecb`
+(default branch `unstable/v1`), fetched and re-verified live 2026-08-26 —
+see `../VERIFIED-SOURCE.md` for the full verification trail. **523 lines,
+verbatim, nothing omitted.** BSD-3-Clause, Copyright © Sviatoslav Sydorenko
+(@webknjaz). Repo self-description: *"[DO NOT USE] THIS REPOSITORY IS
+UNSTABLE AND HIGHLY EXPERIMENTAL!"*
+
+This is the **real, 22-input production version**. What you build during
+the workshop (`.github/workflows/reusable-tox.yml` on each `checkpoint/*`
+branch) is a deliberately smaller teaching version keeping only what's
+needed to demonstrate the 5 patterns — this file is the "here's what it
+looks like at full scale in production" reveal.
+
+**Re-verify before reusing:** this repo is explicitly unstable and has
+already changed once (see `VERIFIED-SOURCE.md` §1). If you're reading this
+file more than a few weeks after 2026-08-26, re-fetch
+`.github/workflows/reusable-tox.yml` from the live repo before trusting
+line numbers or exact input names below.
+
+## What differs from the teaching version, at a glance
+
+| Real (this file) | Teaching version | Why the teaching version drops it |
+|---|---|---|
+| 22 inputs | ~13 inputs | The other 9 (`built-wheel-names`, `dists-artifact-name`, `source-tarball-name`, `checkout-src-git-*`, `cache-key-for-dependency-files`, `environment-variables`, `post-toxenv-preparation-command`, `tox-tool-deps`, `require-successful-codecov-uploads`) are real-world plumbing, not new architectural ideas |
+| Codecov upload (×2) | none | Needs an external account/token; conceptual-only, see `bonus-wheel-and-codecov.md` |
+| `--installpkg` wheel testing | none | Same reason; see `bonus-wheel-and-codecov.md` |
+| `re-actors/cache-python-deps`, sdist-checkout alternative | none | Advanced/optional per the original curriculum notes; mention only if time allows |
+| Full 12-var color/encoding block + `TOX_TESTENV_PASSENV` | 8-var subset | Same pattern, trimmed list — the teaching version only passes through what its own 2 custom tox environments actually need |
+
+## The four hooks — production examples (real, not purpose-built)
+
+Two real hook implementations were fetched and verified (see
+`VERIFIED-SOURCE.md` §4). Both are gated on
+`fromJSON(inputs.calling-job-context).toxenv == 'build-dists'` and do
+release-automation work (patch a changelog, tag a release commit) —
+**deliberately not used as the workshop's teaching template**, because
+they're too narrow/specific to learn the general hook shape from. The
+workshop's own `post-src-checkout` hook (installing `jq`, gated on
+`toxenv == 'needs-jq'`) is purpose-built to be a cleaner first example.
+
+No production example of the fourth hook, `post-tox-job`, was found
+anywhere during verification — it exists in the workflow but isn't yet
+adopted by any caller checked. Legitimate "used, but not yet by everyone"
+detail, not a research gap.
+
+## Full source
+
+```yaml
+---
+
+name: >-
+  ❌
+  [DO NOT CLICK]
+  Reusable Tox
+
+on:
+  workflow_call:
+    inputs:
+      built-wheel-names:
+        description: >-
+          A glob for the built distributions in the artifact
+          to test (is installed into tox env if passed)
+        required: false
+        type: string
+      cache-key-for-dependency-files:
+        description: Dependency files hash for use in cache keys
+        required: true
+        type: string
+      check-name:
+        description: A custom name for the Checks API-reported status
+        required: false
+        type: string
+      checkout-src-git-committish:
+        description: >-
+          A Git-resolvable ref that is used when the source is taken
+          from Git. No-op otherwise. The default is whatever
+          `actions/checkout` does.
+        default: ''
+        required: false
+        type: string
+      checkout-src-git-fetch-depth:
+        description: >-
+          A number of commits for Git to retrieve. Defaults to 1. Set to
+          0 when the entire history is necessary.
+        default: '1'
+        required: false
+        type: string
+      dists-artifact-name:
+        description: >-
+          Workflow artifact name containing dists.
+          Defaults to "python-package-distributions".
+        default: python-package-distributions
+        required: false
+        type: string
+      environment-variables:
+        description: >-
+          A newline-delimited blob of text with environment variables
+          to be set using `${GITHUB_ENV}`
+        required: false
+        type: string
+      job-dependencies-context:
+        default: >-
+          {}
+        description: >-
+          The `$ {{ needs }}` context passed from the calling workflow
+          encoded as a JSON string. The caller is expected to form this
+          input as follows:
+          `job-dependencies-context: $ {{ toJSON(needs) }}`.
+        required: false
+        type: string
+      post-toxenv-preparation-command:
+        description: >-
+          A command to run at the end of the preparation stage, before
+          invoking the Tox's main environment command. Can be used to
+          pre-download things and perform actions that aren't seen as
+          testing directly.
+        required: false
+        type: string
+      python-version:
+        description: Python version to provision in the VM
+        required: true
+        type: string
+      require-successful-codecov-uploads:
+        default: >-
+          true
+        description: >-
+          A boolean string for whether Codecov upload failures would
+          fail the entire job. Defaults to "true".
+        required: false
+        type: string
+      runner-vm-os:
+        description: VM OS to use
+        default: ubuntu-latest
+        required: false
+        type: string
+      source-tarball-name:
+        description: Sdist filename wildcard
+        required: false
+        type: string
+      timeout-minutes:
+        description: Deadline for the job to complete
+        required: true
+        type: string
+      toxenv:
+        description: Name of the tox environment to use
+        required: true
+        type: string
+      tox-provision-args:
+        description: Tox arguments to pass to the env provisioning run
+        required: false
+        type: string
+      tox-run-args:
+        description: Tox arguments to pass to the regular run
+        required: false
+        type: string
+      tox-rerun-args:
+        description: Tox arguments to pass to the re-attempted run
+        required: false
+        type: string
+      tox-run-posargs:
+        description: Positional arguments to pass to the regular tox run
+        required: false
+        type: string
+      tox-rerun-posargs:
+        description: Positional arguments to pass to the re-attempted tox run
+        required: false
+        type: string
+      tox-tool-deps:
+        default: tox tox-uv
+        description: >-
+          PEP 508 specifiers passed to `pip install`. Ignored when
+          `dependencies/direct/tox.in` exists. Defaults to "tox tox-uv".
+        required: false
+        type: string
+      xfail:
+        description: >-
+          Whether this job is expected to fail. Controls if the run outcomes
+          contribute to the failing CI status or not. The job status will be
+          treated as successful if this is set to `true`. Setting `false`
+          should be preferred typically.
+        required: true
+        type: string
+    secrets:
+      codecov-token:
+        description: An API token for uploading to Codecov
+        required: false
+
+    outputs:
+      steps:
+        description: >-
+          JSON-formatted collection of all tox steps with their outputs
+        value: ${{ jobs.tox.outputs.steps }}
+
+env:
+  COLOR: >-  # Supposedly, pytest or coveragepy use this
+    yes
+  FORCE_COLOR: 1  # Request colored output from CLI tools supporting it
+  MYPY_FORCE_COLOR: 1  # MyPy's color enforcement
+  PIP_DISABLE_PIP_VERSION_CHECK: 1
+  PIP_NO_PYTHON_VERSION_WARNING: 1
+  PIP_NO_WARN_SCRIPT_LOCATION: 1
+  PRE_COMMIT_COLOR: always
+  PY_COLORS: 1  # Recognized by the `py` package, dependency of `pytest`
+  PYTHONIOENCODING: utf-8
+  PYTHONUTF8: 1
+  TOX_PARALLEL_NO_SPINNER: 1
+  TOX_TESTENV_PASSENV: >-  # Make tox-wrapped tools see color requests
+    CI
+    COLOR
+    FORCE_COLOR
+    GITHUB_*
+    MYPY_FORCE_COLOR
+    NO_COLOR
+    PIP_DISABLE_PIP_VERSION_CHECK
+    PIP_NO_PYTHON_VERSION_WARNING
+    PIP_NO_WARN_SCRIPT_LOCATION
+    PRE_COMMIT_COLOR
+    PY_COLORS
+    PYTEST_THEME
+    PYTEST_THEME_MODE
+    PYTHONDONTWRITEBYTECODE
+    PYTHONIOENCODING
+    PYTHONLEGACYWINDOWSSTDIO
+    PYTHONTRACEMALLOC
+    PYTHONUTF8
+
+jobs:
+  tox:
+    name: >-
+      ${{
+        inputs.check-name
+        && inputs.check-name
+        || format(
+             '{0}@🐍{1}@💻{2}',
+             inputs.toxenv,
+             inputs.python-version,
+             inputs.runner-vm-os
+           )
+      }}
+
+    runs-on: ${{ inputs.runner-vm-os }}
+
+    timeout-minutes: ${{ fromJSON(inputs.timeout-minutes) }}
+
+    continue-on-error: >-
+      ${{
+          (
+            fromJSON(inputs.xfail) ||
+            (
+              startsWith(inputs.python-version, '~')
+            ) ||
+            endsWith(inputs.python-version, '-dev') ||
+            contains(inputs.python-version, 'alpha')
+          ) && true || false
+      }}
+
+    outputs:
+      steps: ${{ toJSON(steps) }}
+
+    env:
+      TOXENV: ${{ inputs.toxenv }}
+
+    steps:
+    - name: Export requested job-global environment variables
+      if: inputs.environment-variables != ''
+      run: >-
+        echo '${{ inputs.environment-variables }}'
+        >> "${GITHUB_ENV}"
+
+    - name: >-
+        Switch to using Python v${{ inputs.python-version }}
+        by default
+      id: python-install
+      uses: actions/setup-python@v6
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Grab the source from Git
+      if: inputs.source-tarball-name == ''
+      uses: actions/checkout@v5
+      with:
+        fetch-depth: ${{ inputs.checkout-src-git-fetch-depth }}
+        ref: ${{ inputs.checkout-src-git-committish }}
+    - name: Retrieve the project source from an sdist inside the GHA artifact
+      if: inputs.source-tarball-name != ''
+      uses: re-actors/checkout-python-sdist@release/v2
+      with:
+        source-tarball-name: ${{ inputs.source-tarball-name }}
+        workflow-artifact-name: ${{ inputs.dists-artifact-name }}
+
+    - name: 🪝 Invoke the in-repo `post-src-checkout` hook (if exists)
+      id: hook-post-src-checkout
+      if: >-  # `hashFiles()` is used as a rudimentary `file.exists()`
+        !cancelled()
+        && hashFiles(
+          '.github/reusables/tox-dev/workflow/reusable-tox/hooks/post-src-checkout/action.yml'
+        ) != ''
+      uses: ./.github/reusables/tox-dev/workflow/reusable-tox/hooks/post-src-checkout  # yamllint disable-line rule:line-length
+      with:
+        calling-job-context: ${{ toJSON(inputs) }}
+        current-job-steps: ${{ toJSON(steps) }}
+        job-dependencies-context: ${{ inputs.job-dependencies-context }}
+
+    - name: Set up pip cache
+      uses: re-actors/cache-python-deps@release/v1
+      with:
+        cache-key-for-dependency-files: >-
+          ${{ inputs.cache-key-for-dependency-files }}
+
+    - name: Identify tox's own lock file
+      # FIXME: tox-lock/tox-tools/tox-pip-tools <- bin/
+      id: tox-deps
+      if: >-  # `hashFiles()` is used as a rudimentary `file.exists()`
+        hashFiles(
+          'bin/print_lockfile_base_name.py',
+          'dependencies/direct/tox.in'
+        ) != ''
+      run: >
+        LOCK_FILE_PATH="dependencies/lock-files/$(
+        python bin/print_lockfile_base_name.py tox
+        ).txt"
+
+
+        echo lock-file="$(
+        ls -1 "${LOCK_FILE_PATH}"
+        || >&2 echo "${LOCK_FILE_PATH}" not found, not injecting...
+        )"
+        >> "${GITHUB_OUTPUT}"
+      shell: bash  # windows compat
+
+    - name: Install tox and plugins from `dependencies/direct/tox.in`
+      if: >-  # `hashFiles()` is used as a rudimentary `file.exists()`
+        hashFiles('dependencies/direct/tox.in') != ''
+      run: >-
+        python -Im pip install -r dependencies/direct/tox.in
+        ${{
+          steps.tox-deps.outputs.lock-file
+          && format('--constraint={0}', steps.tox-deps.outputs.lock-file)
+          || ''
+        }}
+      shell: bash  # windows compat
+
+    - name: Install ${{ inputs.tox-tool-deps }}
+      if: >-  # `hashFiles()` is used as a rudimentary `file.exists()`
+        hashFiles('dependencies/direct/tox.in') == ''
+      run: python -Im pip install ${{ inputs.tox-tool-deps }}
+      shell: bash  # windows compat
+
+    - name: Download all the dists
+      if: >-
+        inputs.built-wheel-names != ''
+      uses: actions/download-artifact@v6
+      with:
+        name: ${{ inputs.dists-artifact-name }}
+        path: dist/
+
+    - name: >-
+        Pre-populate tox envs: `${{ env.TOXENV }}`
+      run: >-
+        python -Xutf8 -Im
+        tox
+        --parallel auto
+        --parallel-live
+        --skip-missing-interpreters false
+        ${{ inputs.tox-provision-args }}
+        ${{
+          inputs.built-wheel-names != ''
+          && format('--installpkg dist/{0}', inputs.built-wheel-names)
+          || ''
+        }}
+        --notest
+    - name: Pre-heat the `${{ env.TOXENV }}` tox env
+      if: inputs.post-toxenv-preparation-command != ''
+      run: >-
+        python -Xutf8 -Im
+        tox
+        exec
+        --skip-pkg-install
+        --quiet
+        --
+        ${{ inputs.post-toxenv-preparation-command }}
+    - name: 🪝 Invoke the in-repo `prepare-for-tox-run` hook (if exists)
+      id: hook-prepare-for-tox-run
+      if: >-  # `hashFiles()` is used as a rudimentary `file.exists()`
+        !cancelled()
+        && hashFiles(
+          '.github/reusables/tox-dev/workflow/reusable-tox/hooks/prepare-for-tox-run/action.yml'
+        ) != ''
+      uses: ./.github/reusables/tox-dev/workflow/reusable-tox/hooks/prepare-for-tox-run  # yamllint disable-line rule:line-length
+      with:
+        calling-job-context: ${{ toJSON(inputs) }}
+        current-job-steps: ${{ toJSON(steps) }}
+        job-dependencies-context: ${{ inputs.job-dependencies-context }}
+    - name: >-
+        Run tox envs: `${{ env.TOXENV }}`
+      id: tox-run
+      run: >-
+        python -Xutf8 -Im
+        tox
+        --parallel auto
+        --parallel-live
+        --skip-missing-interpreters false
+        --skip-pkg-install
+        --quiet
+        ${{ inputs.tox-run-args }}
+        ${{
+          inputs.tox-run-posargs != ''
+          && format('-- {0}', inputs.tox-run-posargs)
+          || ''
+        }}
+
+    - name: 🪝 Invoke the in-repo `post-tox-run` hook (if exists)
+      id: hook-post-tox-run
+      if: >-  # `hashFiles()` is used as a rudimentary `file.exists()`
+        !cancelled()
+        && steps.tox-run.outcome != 'skipped'
+        && hashFiles(
+          '.github/reusables/tox-dev/workflow/reusable-tox/hooks/post-tox-run/action.yml'
+        ) != ''
+      uses: ./.github/reusables/tox-dev/workflow/reusable-tox/hooks/post-tox-run
+      with:
+        calling-job-context: ${{ toJSON(inputs) }}
+        current-job-steps: ${{ toJSON(steps) }}
+        job-dependencies-context: ${{ inputs.job-dependencies-context }}
+
+    - name: Explain re-runing the failing tests
+      if: >-
+        !cancelled()
+        && steps.tox-run.outcome == 'failure'
+        && inputs.tox-rerun-posargs != ''
+      run: >-
+        {
+          echo '> [!IMPORTANT]';
+          echo -n '> The main tox command failed. It has been restarted with ';
+          echo -n 'maximum context extraction to help you troubleshoot the ';
+          echo -n 'issue. We have intentionally marked the second run as ';
+          echo -n 'failing. Be sure to carefully compare the first and the ';
+          echo -n 'second invocations to learn if the tests are flaky and ';
+          echo 'hopefully guide you in fixing them. Cheers!'
+          echo '> 💛💙'
+          echo;
+          echo;
+        } | tee -a "${GITHUB_STEP_SUMMARY}"
+      shell: bash -eEuo pipefail {0}
+
+    - name: Produce markdown test summary from JUnit
+      if: >-
+        !cancelled()
+        && steps.tox-run.outputs.test-result-files != ''
+      uses: test-summary/action@v2.3
+      with:
+        paths: >-
+          ${{ steps.tox-run.outputs.test-result-files }}
+    - name: Produce markdown test summary from Cobertura XML
+      # NOTE: MyPy is temporarily excluded because it produces incomplete XML
+      # NOTE: files that `irongut/CodeCoverageSummary` can't stomach.
+      # Refs:
+      # * https://github.com/irongut/CodeCoverageSummary/issues/324
+      # * https://github.com/python/mypy/issues/17689
+      # FIXME: Revert the exclusion once upstream fixes the bug.
+      if: >-
+        !cancelled()
+        && runner.os == 'Linux'
+        && steps.tox-run.outputs.cov-report-files != ''
+        && steps.tox-run.outputs.test-result-files == ''
+        && steps.tox-run.outputs.codecov-flags != 'MyPy'
+      uses: irongut/CodeCoverageSummary@v1.3.0
+      with:
+        badge: true
+        filename: >-
+          ${{ steps.tox-run.outputs.cov-report-files }}
+        format: markdown
+        output: both
+    # Ref: https://github.com/irongut/CodeCoverageSummary/issues/66
+    - name: Append coverage results to Job Summary
+      if: >-
+        !cancelled()
+        && runner.os == 'Linux'
+        && steps.tox-run.outputs.cov-report-files != ''
+        && steps.tox-run.outputs.test-result-files == ''
+        && steps.tox-run.outputs.codecov-flags != 'MyPy'
+      run: >-
+        cat code-coverage-results.md >> "${GITHUB_STEP_SUMMARY}"
+    - name: Re-run the failing tests with maximum verbosity
+      if: >-
+        !cancelled()
+        && steps.tox-run.outcome == 'failure'
+        && inputs.tox-rerun-posargs != ''
+      run: >-  # `exit 1` makes sure that the job remains red with flaky runs
+        python -Xutf8 -Im
+        tox
+        --parallel auto
+        --parallel-live
+        --skip-missing-interpreters false
+        -vvvvv
+        --skip-pkg-install
+        ${{ inputs.tox-rerun-args }}
+        --
+        ${{ inputs.tox-rerun-posargs }}
+        && exit 1
+      shell: bash
+    - name: Send coverage data to Codecov
+      if: >-
+        !cancelled()
+        && steps.tox-run.outputs.cov-report-files != ''
+      uses: codecov/codecov-action@v7
+      with:
+        disable_search: true
+        fail_ci_if_error: >-
+          ${{ inputs.require-successful-codecov-uploads }}
+        files: >-
+          ${{ steps.tox-run.outputs.cov-report-files }}
+        flags: >-
+          CI-GHA,
+          ${{ steps.tox-run.outputs.codecov-flags }},
+          OS-${{
+            runner.os
+          }},
+          VM-${{
+            inputs.runner-vm-os
+          }},
+          Py-${{
+            steps.python-install.outputs.python-version
+          }}
+        token: ${{ secrets.codecov-token }}
+    - name: Upload test results to Codecov
+      if: >-
+        !cancelled()
+        && steps.tox-run.outputs.test-result-files != ''
+      # NOTE: `codecov/test-results-action` is not used because it has a bug in
+      # NOTE: the architecture detection logic that leads it to download an
+      # NOTE: incompatible executable built for x86_64 under arm64.
+      # yamllint disable rule:line-length
+      # Ref: https://github.com/codecov/test-results-action/issues/121#issuecomment-2859242703
+      # yamllint enable rule:line-length
+      uses: codecov/codecov-action@v7
+      with:
+        disable_search: true
+        fail_ci_if_error: >-
+          ${{ inputs.require-successful-codecov-uploads }}
+        files: >-
+          ${{ steps.tox-run.outputs.test-result-files }}
+        flags: >-
+          CI-GHA,
+          ${{ steps.tox-run.outputs.codecov-flags }},
+          OS-${{
+            runner.os
+          }},
+          VM-${{
+            inputs.runner-vm-os
+          }},
+          Py-${{
+            steps.python-install.outputs.python-version
+          }}
+        report_type: test_results  # Toggle from "coverage" to "tests" mode
+        token: ${{ secrets.codecov-token }}
+
+    - name: 🪝 Invoke the in-repo `post-tox-job` hook (if exists)
+      id: hook-post-tox-job
+      if: >-  # `hashFiles()` is used as a rudimentary `file.exists()`
+        !cancelled()
+        && hashFiles(
+          '.github/reusables/tox-dev/workflow/reusable-tox/hooks/post-tox-job/action.yml'
+        ) != ''
+      uses: ./.github/reusables/tox-dev/workflow/reusable-tox/hooks/post-tox-job
+      with:
+        calling-job-context: ${{ toJSON(inputs) }}
+        current-job-steps: ${{ toJSON(steps) }}
+        job-dependencies-context: ${{ inputs.job-dependencies-context }}
+
+...
+```
