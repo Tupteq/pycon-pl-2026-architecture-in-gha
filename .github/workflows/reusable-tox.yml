@@ -1,0 +1,21 @@
+---
+# STARTER STATE. Build this during Phase A of the workshop:
+#   - `on: workflow_call:` inputs: python-version, runner-vm-os, toxenv,
+#     timeout-minutes, xfail, check-name (all scalar strings, no arrays)
+#   - a single job named `tox`
+#   - `runs-on`, `timeout-minutes`, `continue-on-error` (xfail-or-prerelease)
+#   - `env: TOXENV: ${{ inputs.toxenv }}`
+#   - actions/setup-python + actions/checkout steps
+#
+# Stuck? `git checkout checkpoint/phase-a-skeleton` to see the finished
+# version, then come back to `main` and keep building from there.
+
+on:
+  workflow_call:
+    inputs: {}
+
+jobs:
+  tox:
+    runs-on: ubuntu-latest
+    steps:
+    - run: echo "Build me during Phase A!"

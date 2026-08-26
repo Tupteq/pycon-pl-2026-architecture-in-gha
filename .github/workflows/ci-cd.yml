@@ -1,0 +1,15 @@
+---
+# STARTER STATE. Build this during Phase A: a `strategy: matrix:` over at
+# least two Python versions, calling ./.github/workflows/reusable-tox.yml
+# once per matrix leg via `uses:` + `with:`.
+#
+# Stuck? `git checkout checkpoint/phase-a-skeleton` for the finished version.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs: {}
