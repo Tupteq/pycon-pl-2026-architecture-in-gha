@@ -1,7 +1,10 @@
 .tox/
+build/
 *.egg-info/
 __pycache__/
 *.pyc
+.coverage
+.coverage.*
 coverage.xml
 test-results.xml
 htmlcov/
