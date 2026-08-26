@@ -1,0 +1,143 @@
+---
+# The `tests:` job from cherrypy/cheroot's .github/workflows/ci-cd.yml
+# AFTER the reusable-tox migration, at HEAD (3937fe1e, 2026-06-23).
+# Extracted verbatim via:
+#   git show HEAD:.github/workflows/ci-cd.yml
+# Source: ~/src/experiments/gh-lookup-ep-2026/after-caller.yml
+# (full file, 1293 lines) -- this is just the tests: job, lines 712-846.
+jobs:
+  tests:
+    name: 🧪 Tests${{ '' }}  # nest jobs under the same sidebar category
+
+    needs:
+    - build
+    - pre-setup  # transitive, for accessing settings
+
+    strategy:
+      fail-fast: >-  # ${{ runner.debug }} is unavailable in this context
+        ${{
+          fromJSON(needs.pre-setup.outputs.is-debug-mode)
+          && false
+          || true
+        }}
+      matrix:
+        python-version:
+        # NOTE: The latest and the lowest supported Pythons are prioritized
+        # NOTE: to improve the responsiveness. It's nice to see the most
+        # NOTE: important results first.
+        - 3.14
+        - 3.13
+        - 3.8
+        - pypy-3.11
+        - 3.12
+        - 3.11
+        - >-
+          3.10
+        - 3.9
+        - ~3.15.0-0
+        runner-vm-os:
+        - ubuntu-24.04-arm
+        - ubuntu-24.04
+        - macos-15
+        - windows-2025
+        - ubuntu-22.04
+        - macos-15-intel
+        - windows-2022
+        toxenv:
+        - py
+        xfail:
+        - false
+        exclude:
+        # NOTE: Windows PyPy 3.11 jobs are excluded because of UTF-8
+        # NOTE: encoding bugs in tox.
+        # NOTE: They should be re-added once it's fixed.
+        - runner-vm-os: windows-2025
+          python-version: pypy-3.11
+        - runner-vm-os: windows-2022
+          python-version: pypy-3.11
+        # NOTE: macOS PyPy 3.11 jobs are excluded because they flakily
+        # NOTE: crash `pytest-xdist` workers.
+        # NOTE: They should be re-added once it's fixed.
+        - runner-vm-os: macos-15
+          python-version: pypy-3.11
+        - runner-vm-os: macos-15-intel
+          python-version: pypy-3.11
+
+    uses: tox-dev/workflow/.github/workflows/reusable-tox.yml@1bb961580e20073f66ccb9024f248357f8c8fecb  # yamllint disable-line rule:line-length
+    with:
+      built-wheel-names: >-
+        ${{ needs.pre-setup.outputs.wheel-artifact-name }}
+      cache-key-for-dependency-files: >-
+        ${{ needs.pre-setup.outputs.cache-key-for-dep-files }}
+      check-name: >-
+        🧪 🐍${{
+          matrix.python-version
+        }} @ ${{
+          matrix.runner-vm-os
+        }}
+      dists-artifact-name: >-
+        ${{ needs.pre-setup.outputs.dists-artifact-name }}
+      job-dependencies-context: >-  # context for hooks
+        ${{ toJSON(needs) }}
+      python-version: >-
+        ${{ matrix.python-version }}
+      require-successful-codecov-uploads: >-
+        ${{
+          toJSON(
+          needs.pre-setup.outputs.upstream-repository-id
+          == github.repository_id
+          )
+        }}
+      runner-vm-os: >-
+        ${{ matrix.runner-vm-os }}
+      source-tarball-name: >-
+        ${{ needs.pre-setup.outputs.sdist-artifact-name }}
+      timeout-minutes: 7
+      toxenv: >-
+        ${{ matrix.toxenv }}
+      # tox-provision-args: >-
+      #   --force-dep '...'
+      tox-run-posargs: >-
+        --cov-report=xml:.tox/.tmp/.test-results/pytest-${{
+          matrix.python-version
+        }}/cobertura.xml
+        --junitxml=.tox/.tmp/.test-results/pytest-${{
+          matrix.python-version
+        }}/test.xml
+      tox-rerun-posargs: >-
+        --no-cov
+        -vvvvv
+        --lf
+      tox-tool-deps: tox
+      xfail: >-
+        ${{
+          fromJSON(needs.pre-setup.outputs.is-yolo-mode)
+          || fromJSON(matrix.xfail)
+        }}
+    secrets:
+      codecov-token: ${{ secrets.CODECOV_TOKEN }}
+
+  check:  # This job does nothing and is only used for the branch protection
+    if: always()
+
+    needs:
+    - lint
+    - pre-setup  # transitive, for accessing settings
+    - tests
+
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 1
+
+    steps:
+    - name: Decide whether the needed jobs succeeded or failed
+      uses: re-actors/alls-green@release/v1
+      with:
+        allowed-failures: >-
+          ${{
+            fromJSON(needs.pre-setup.outputs.is-yolo-mode)
+            && 'lint, tests'
+            || ''
+          }}
+        jobs: ${{ toJSON(needs) }}
+

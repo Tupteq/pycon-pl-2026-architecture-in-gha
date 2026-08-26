@@ -1,0 +1,207 @@
+---
+# The `tests:` job from cherrypy/cheroot's .github/workflows/ci-cd.yml
+# BEFORE the reusable-tox migration, at commit 90ca482e^ (immediately
+# prior to the migration commit). Extracted verbatim via:
+#   git show 90ca482e^:.github/workflows/ci-cd.yml
+# Source: ~/src/experiments/gh-lookup-ep-2026/before-monolithic.yml
+# (full file, 1421 lines) -- this is just the tests: job, lines 788-986.
+jobs:
+  tests:
+    name: >-
+      🧪 🐍${{
+          matrix.python-version
+      }} @ ${{
+          matrix.os
+      }}
+    needs:
+    - build
+    - pre-setup  # transitive, for accessing settings
+    runs-on: ${{ matrix.os }}
+
+    timeout-minutes: 7
+
+    strategy:
+      matrix:
+        python-version:
+        # NOTE: The latest and the lowest supported Pythons are prioritized
+        # NOTE: to improve the responsiveness. It's nice to see the most
+        # NOTE: important results first.
+        - 3.12
+        - 3.11
+        - >-
+          3.10
+        - 3.9
+        - 3.8
+        os:
+        - ubuntu-22.04
+        - ubuntu-20.04
+        - macos-13
+        - windows-2019
+        - windows-2022
+
+    continue-on-error: >-
+      ${{
+          (
+            fromJSON(needs.pre-setup.outputs.is-yolo-mode) ||
+            (
+              startsWith(matrix.python-version, '~')
+            ) ||
+            contains(matrix.python-version, 'alpha')
+          ) && true || false
+      }}
+
+    env:
+      TOXENV: python
+
+    steps:
+    - name: Set up Python ${{ matrix.python-version }}
+      id: python-install
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Retrieve the project source from an sdist inside the GHA artifact
+      uses: re-actors/checkout-python-sdist@release/v2
+      with:
+        source-tarball-name: ${{ needs.pre-setup.outputs.sdist-artifact-name }}
+        workflow-artifact-name: >-
+          ${{ needs.pre-setup.outputs.dists-artifact-name }}
+
+    - name: Set up pip cache
+      uses: ./.github/actions/cache-pip-deps
+      with:
+        cache-key-for-dep-files: >-
+          ${{ needs.pre-setup.outputs.cache-key-files }}
+
+    - name: Upgrade pip with `requires_python`
+      run: >-
+        python -m
+        pip install
+        --user
+        --upgrade
+        --force-reinstall
+        pip-with-requires-python
+    - name: Install tox
+      run: >-
+        python -m
+        pip install
+        --user
+        '${{ env.TOX_VERSION }}'
+
+    - name: Download all the dists
+      uses: actions/download-artifact@v4
+      with:
+        name: >-
+          ${{ needs.pre-setup.outputs.dists-artifact-name }}
+        path: dist/
+
+    - name: >-
+        Pre-populate tox env:
+        ${{ env.TOXENV }}
+      run: >-
+        python -m
+        tox
+        --parallel auto
+        --parallel-live
+        --skip-missing-interpreters false
+        --installpkg 'dist/${{ needs.pre-setup.outputs.wheel-artifact-name }}'
+        --notest
+
+    - name: Run the testing
+      run: >-
+        python -m
+        tox
+        --parallel auto
+        --parallel-live
+        --skip-missing-interpreters false
+        --installpkg 'dist/${{ needs.pre-setup.outputs.wheel-artifact-name }}'
+        --skip-pkg-install
+        --quiet
+    - name: Produce markdown test summary from JUnit
+      if: >-
+        !cancelled()
+      uses: test-summary/action@v2.3
+      with:
+        paths: .test-results/pytest/test.xml
+    - name: Check if Cobertura XML coverage files exist
+      if: >-
+        !cancelled()
+        && runner.os == 'Linux'
+      id: coverage-files
+      run: >-
+        compgen -G '.test-results/pytest/cov.xml'
+        && ( echo 'present=true' >> ${GITHUB_OUTPUT} )
+        ;
+        exit 0
+      shell: bash
+    - name: Produce markdown test summary from Cobertura XML
+      if: steps.coverage-files.outputs.present == 'true'
+      uses: irongut/CodeCoverageSummary@v1.3.0
+      with:
+        badge: true
+        filename: .test-results/pytest/cov.xml
+        format: markdown
+        output: both
+    # Ref: https://github.com/irongut/CodeCoverageSummary/issues/66
+    - name: Append coverage results to Job Summary
+      if: steps.coverage-files.outputs.present == 'true'
+      run: >-
+        cat code-coverage-results.md >> "${GITHUB_STEP_SUMMARY}"
+    - name: Re-run the failing tests with maximum verbosity
+      if: >-
+        !cancelled()
+        && failure()
+      run: >-  # `exit 1` makes sure that the job remains red with flaky runs
+        python -m
+        tox
+        --parallel auto
+        --parallel-live
+        --skip-missing-interpreters false
+        -vvvvv
+        --installpkg 'dist/${{ needs.pre-setup.outputs.wheel-artifact-name }}'
+        --
+        --no-cov -vvvvv --lf
+        && exit 1
+      shell: bash
+    - name: Send coverage data to Codecov
+      if: >-
+        !cancelled()
+      uses: codecov/codecov-action@v5
+      with:
+        files: .test-results/pytest/cov.xml
+        flags: >-
+          CI-GHA,
+          OS-${{
+            runner.os
+          }},
+          VM-${{
+            matrix.os
+          }},
+          Py-${{
+            steps.python-install.outputs.python-version
+          }}
+
+  check:  # This job does nothing and is only used for the branch protection
+    if: always()
+
+    needs:
+    - lint
+    - pre-setup  # transitive, for accessing settings
+    - tests
+
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 1
+
+    steps:
+    - name: Decide whether the needed jobs succeeded or failed
+      uses: re-actors/alls-green@release/v1
+      with:
+        allowed-failures: >-
+          ${{
+            fromJSON(needs.pre-setup.outputs.is-yolo-mode)
+            && 'lint, tests'
+            || ''
+          }}
+        jobs: ${{ toJSON(needs) }}
+
