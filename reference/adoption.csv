@@ -1,0 +1,21 @@
+repo,stars,fork,archived,owner_type,role,caller_files,uses_refs
+jazzband/pip-tools,8007,False,False,Organization,caller,.github/workflows/ci.yml,tox-dev/workflow/.github/workflows/reusable-tox.yml@1bb961580e20073f66ccb9024f248357f8c8fecb
+antonbabenko/pre-commit-terraform,3739,False,False,User,caller (hosts own copy),.github/workflows/ci-cd.yml,./.github/workflows/reusable-tox.yml
+cherrypy/cherrypy,1943,False,False,Organization,caller,.github/workflows/ci-cd.yml,tox-dev/workflow/.github/workflows/reusable-tox.yml@208490c75f7f6b81e2698cc959f24d264c462d57
+aio-libs/yarl,1489,False,False,Organization,caller,.github/workflows/ci-cd.yml,tox-dev/workflow/.github/workflows/reusable-tox.yml@34958348bac6272f9729229f1b5679c76c3f9651
+ansible/ansible-runner,1072,False,False,Organization,caller,.github/workflows/ci.yml,tox-dev/workflow/.github/workflows/reusable-tox.yml@89de3c6be3cd179adf71e28aa4ac5bef60804209
+ansible/ansible-builder,346,False,False,Organization,caller,.github/workflows/ci.yml,tox-dev/workflow/.github/workflows/reusable-tox.yml@89de3c6be3cd179adf71e28aa4ac5bef60804209
+msabramo/requests-unixsocket,221,False,False,User,caller,.github/workflows/ci-cd.yml,tox-dev/workflow/.github/workflows/reusable-tox.yml@cf231470741185d1bbb3ba45f9aa904b171c47dc
+cherrypy/cheroot,201,False,False,Organization,caller,.github/workflows/ci-cd.yml,tox-dev/workflow/.github/workflows/reusable-tox.yml@1bb961580e20073f66ccb9024f248357f8c8fecb
+re-actors/alls-green,168,False,False,Organization,caller,.github/workflows/self-smoke-test-action.yml,tox-dev/workflow/.github/workflows/reusable-tox.yml@617ca35caa695c572377861016677905e58a328c
+aio-libs/aiosignal,165,False,False,Organization,caller,.github/workflows/ci-cd.yml,tox-dev/workflow/.github/workflows/reusable-tox.yml@208490c75f7f6b81e2698cc959f24d264c462d57
+aio-libs/propcache,35,False,False,Organization,caller,.github/workflows/ci-cd.yml,tox-dev/workflow/.github/workflows/reusable-tox.yml@34958348bac6272f9729229f1b5679c76c3f9651
+sphinx-contrib/sphinxcontrib-towncrier,19,False,False,Organization,caller,.github/workflows/ci-cd.yml,tox-dev/workflow/.github/workflows/reusable-tox.yml@208490c75f7f6b81e2698cc959f24d264c462d57
+ansible/awx-plugins,9,False,False,Organization,caller,.github/workflows/ci-cd.yml,tox-dev/workflow/.github/workflows/reusable-tox.yml@1bb961580e20073f66ccb9024f248357f8c8fecb
+cherrypy/magicbus,7,False,False,Organization,caller,.github/workflows/ci-cd.yml,tox-dev/workflow/.github/workflows/reusable-tox.yml@208490c75f7f6b81e2698cc959f24d264c462d57
+tox-dev/workflow,6,False,False,Organization,canonical home,,
+tox-dev/tox-pre-commit,3,False,False,Organization,caller,.github/workflows/ci-cd.yml,tox-dev/workflow/.github/workflows/reusable-tox.yml@1bb961580e20073f66ccb9024f248357f8c8fecb
+tox-dev/tox-towncrier,2,False,False,Organization,caller,.github/workflows/ci-cd.yml,tox-dev/workflow/.github/workflows/reusable-tox.yml@1bb961580e20073f66ccb9024f248357f8c8fecb
+ansible/awx_plugins.interfaces,1,False,False,Organization,caller,.github/workflows/ci-cd.yml,tox-dev/workflow/.github/workflows/reusable-tox.yml@1bb961580e20073f66ccb9024f248357f8c8fecb
+cobycloud/actions,0,False,False,User,hosts own copy,,
+CCChz233/FeatureLiftBench,0,False,False,User,vendored clone of yarl (benchmark),,
