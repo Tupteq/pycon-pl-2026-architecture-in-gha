@@ -5,6 +5,9 @@
 # coverage data, gate is toxenv == 'py'). Phase D extends this same
 # [py, pre-commit] dimension to a realistic multi-Python matrix -- nothing
 # new is introduced there, just more legs of what's already here.
+# PHASE C caller: adds a second toxenv (`needs-jq`) so the hook's
+# `toxenv`-gated branch is exercised for real, side by side with the
+# ordinary `py` leg where the hook still runs but does nothing.
 
 name: CI
 
@@ -24,6 +27,7 @@ jobs:
         toxenv:
         - py
         - pre-commit
+        - needs-jq
         xfail:
         - false
     uses: ./.github/workflows/reusable-tox.yml
