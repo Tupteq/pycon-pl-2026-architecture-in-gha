@@ -1,24 +1,26 @@
-# What you missed if you jumped straight here (Phase B)
+# What you missed if you jumped straight here (Phase C)
 
-**The idea, not just the code:** the reusable workflow now runs tox in
-three deliberately separate stages: provision (`--notest`), the real run
-(`id: tox-run`), and a conditional debug rerun on failure. This separation
-means "the environment failed to build" and "a test failed" are never
-ambiguous in the logs — you know which one happened before you even read a
-line of pytest output.
+**The idea, not just the code:** four hook points now exist —
+`post-src-checkout` → `prepare-for-tox-run` → `post-tox-run` →
+`post-tox-job` — each gated by `hashFiles('.../action.yml') != ''` used as
+a poor man's `file.exists()`. Only one is actually implemented here
+(`post-src-checkout`); the other three are real extension points that
+currently do nothing because their `action.yml` files don't exist yet in
+this repo. Delete `.github/reusables/.../post-src-checkout/action.yml` and
+push — the hook cleanly no-ops, no error. That's the whole point: adding a
+hook never requires touching the reusable workflow's own code.
 
-The debug-rerun step ends with `&& exit 1` on purpose — even if the verbose
-rerun happens to pass, the job stays red. A test that fails once and passes
-on retry is *flaky*, not *fine*.
+**Look at the hook itself**
+(`.github/reusables/tox-dev/workflow/reusable-tox/hooks/post-src-checkout/action.yml`):
+it doesn't just check "does this repo want a hook," it also branches on
+*which tox environment* triggered it
+(`fromJSON(inputs.calling-job-context).toxenv == 'needs-jq'`). Every hook
+gets the calling job's entire input set as one JSON blob, not individual
+named parameters — new inputs on the core workflow never require touching
+the hook interface. Real production hooks (see
+`reference/reusable-tox-annotated.md` and the facilitator's live reveal) use
+this exact same `fromJSON(...).toxenv == '...'` idiom, just for narrower,
+release-automation-specific purposes.
 
-**Notice what's absent:** nothing in this workflow or `tox.ini` renders a
-coverage/test summary anywhere. That's deliberate — the real upstream
-`reusable-tox.yml` bakes this into unconditional core steps (see
-`reference/reusable-tox-annotated.md`), which is arguably inconsistent
-with the extension-point philosophy the whole design is built around. The
-fix is a hook, not `tox.ini` plumbing — see
-`reference/coverage-reporting-hook.md` and the demo at the start of
-Phase C.
-
-Next: `checkout checkpoint/phase-c-hooks` to see extension points added
-around these three stages.
+Next: `checkout checkpoint/phase-d-caller` for the realistic matrix and
+Pattern 5's explicit-env-var block.
