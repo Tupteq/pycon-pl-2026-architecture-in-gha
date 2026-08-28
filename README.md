@@ -31,18 +31,12 @@ build, not the package.
   you build here is a deliberately smaller teaching version of that file —
   read this handout when you want to see the "real world" version.
 
-## Stretch goal: prove cross-repo reuse (optional, not timed into the session)
+## Further reading
 
-Everything above proves the reusable workflow works when called *from
-within this same repo* (`uses: ./.github/workflows/reusable-tox.yml`).
-That's real, but it's not the actual motivating story of the talk — "every
-Python project maintains its own CI/CD... when you maintain dozens, it's a
-maintenance nightmare." If you finish Phase D early: clone/fork the
-sibling `workshop-template-second-repo/` — a second, otherwise-unrelated
-minimal tox project — and point its `ci-cd.yml`'s placeholder `uses:` line
-at *your own fork* of this repo. Push, and watch a completely different
-project's CI run through infrastructure you built here. See that repo's
-own `README.md` for the exact steps.
+- GitHub Actions: [Reuse workflows](https://docs.github.com/en/actions/sharing-automations/reusing-workflows)
+- GitHub Actions: [Creating a composite action](https://docs.github.com/en/actions/sharing-automations/creating-actions/creating-a-composite-action)
+- GitHub Actions: [Evaluate expressions in workflows and actions](https://docs.github.com/en/actions/reference/evaluate-expressions-in-workflows-and-actions)
+- [tox documentation](https://tox.wiki/en/stable/)
 
 ## Local fallback
 
