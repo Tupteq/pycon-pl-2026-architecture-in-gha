@@ -80,6 +80,16 @@ runs:
   account.
 
 This was tested end-to-end against this repo's own package and produces a
-real markdown table in the job summary. It's shown as a reveal in Phase C,
-not something you build hands-on — but it's real, working code you can
-copy into your own project's hooks directory afterward.
+real markdown table in the job summary. **It directly replaces the
+`tox.ini` `commands_post`/`$GITHUB_OUTPUT` mechanism Phase B deliberately
+never builds** — earlier drafts of this workshop taught that mechanism as
+the "single highest-value aha moment," but it only ever demonstrated the
+plumbing (an empty `test-result-files=` value nothing consumed), never
+produced anything of real value. This hook does. It's shown live to
+everyone at the start of Phase C (1:30–1:38), not something you build
+hands-on — but it's real, working code you can copy into your own
+project's hooks directory afterward. Also notice what it *doesn't* need:
+no `passenv`/`pass_env` anywhere in `tox.ini`, because the redirect to
+`$GITHUB_STEP_SUMMARY` happens in the outer shell, not inside the
+tox-invoked subprocess — one more reason this design is simpler than the
+mechanism it replaces.
