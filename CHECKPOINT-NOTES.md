@@ -22,5 +22,14 @@ the hook interface. Real production hooks (see
 this exact same `fromJSON(...).toxenv == '...'` idiom, just for narrower,
 release-automation-specific purposes.
 
+**Also shown at the start of this phase (not built here, a facilitator
+demo):** a `post-tox-run` hook that renders coverage as a markdown table in
+the job summary — `tox exec --skip-pkg-install --quiet -- coverage report
+--format=markdown >> "$GITHUB_STEP_SUMMARY"`. This is the direct
+replacement for the `commands_post`/`$GITHUB_OUTPUT` mechanism Phase B
+deliberately didn't build — see `reference/coverage-reporting-hook.md` for
+the full story and `answer-key`'s hooks directory for the real, tested
+file.
+
 Next: `checkout checkpoint/phase-d-caller` for the realistic matrix and
 Pattern 5's explicit-env-var block.
