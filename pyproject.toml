@@ -8,5 +8,8 @@ version = "0.0.0"
 description = "Workshop demo package for 'Software Architecture Meets CI/CD'"
 requires-python = ">=3.9"
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.setuptools]
+py-modules = ["ci_patterns_demo"]
+
+[tool.setuptools.package-dir]
+"" = "src"
