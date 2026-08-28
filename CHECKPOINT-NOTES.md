@@ -4,10 +4,12 @@
 Two things landed in this phase:
 
 1. **Pattern 5, Exhibit B** — the workflow-level `env:` block (color +
-   encoding vars) and `TOX_TESTENV_PASSENV`. Notice this is a *different*
-   mechanism than `tox.ini`'s own `passenv` line added back in Phase B —
-   `TOX_TESTENV_PASSENV` widens every testenv's passenv list from outside
-   `tox.ini` entirely. Explicitness has a cost: thirteen tools, thirteen
+   encoding vars) and `TOX_TESTENV_PASSENV`. `TOX_TESTENV_PASSENV` widens
+   every testenv's passenv list from *outside* `tox.ini` entirely — real
+   projects rely on this instead of hand-maintaining a `passenv`/`pass_env`
+   line per project. (`tox.ini`'s own `[testenv:pre-commit]` still has a
+   small local `pass_env` for `SKIP` — a different, narrower need, unrelated
+   to color output.) Explicitness has a cost: thirteen tools, thirteen
    different color env vars, one workflow forced to know all of them.
 2. **A realistic caller matrix** (3 Python versions × 2 tox envs = 6 legs)
    in `ci-cd.yml` — the reusable workflow's own code did not change at all
@@ -15,9 +17,12 @@ Two things landed in this phase:
    Pattern 1 + Pattern 2 together.
 
 `reference/reusable-tox-annotated.md` has the full real 22-input production
-version if you want to see what's cut here (wheel installs, Codecov,
-sdist-checkout) — see `reference/bonus-wheel-and-codecov.md` for why those
-were left conceptual-only.
+version if you want to see what's cut here. Wheel installs and
+sdist-checkout are left conceptual-only (real-world plumbing, not core
+architecture — see `reference/bonus-wheel-and-codecov.md`). Codecov is cut
+for a different reason entirely: it's deliberately not taught as core
+behavior at all — see `reference/coverage-reporting-hook.md` for why, and
+the hook shown at the start of Phase C for the alternative.
 
 This is the end of the guided build. From here: adapt this template to your
 own project, or explore the full annotated reference.
