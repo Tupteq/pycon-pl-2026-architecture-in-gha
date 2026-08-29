@@ -15,6 +15,15 @@ Two things landed in this phase:
    in `ci-cd.yml` — the reusable workflow's own code did not change at all
    to support going from 2 legs (Phase A) to 6. That's the payoff of
    Pattern 1 + Pattern 2 together.
+3. **A `check:` job using `re-actors/alls-green`** — the matrix's own
+   capstone. Branch protection's required-checks list breaks every time a
+   matrix's shape changes; naively listing every job in `check`'s `needs:`
+   has a subtle bug too (on failure, `check` becomes `skipped`, not
+   `failed`, without real aggregation logic). `alls-green` fixes both:
+   `needs: [tests]`, `if: always()`, and `needs.tests.result` already
+   aggregates correctly across all 6 matrix legs — no per-leg handling
+   needed. Referenced via `@release/v1`, a real stable channel, unlike
+   `tox-dev/workflow`'s own "unstable/experimental" self-description.
 
 `reference/reusable-tox-annotated.md` has the full real 22-input production
 version if you want to see what's cut here. Wheel installs and
