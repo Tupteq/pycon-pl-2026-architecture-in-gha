@@ -64,9 +64,9 @@ on:
         default: >-
           {}
         description: >-
-          The `${{ needs }}` context passed from the calling workflow encoded
-          as a JSON string:
-          `job-dependencies-context: ${{ toJSON(needs) }}`.
+          The `$ {{ needs }}` context passed from the calling workflow
+          encoded as a JSON string:
+          `job-dependencies-context: $ {{ toJSON(needs) }}`.
         required: false
         type: string
 
