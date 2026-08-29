@@ -1,9 +1,6 @@
 ---
-# STARTER STATE. Build this during Phase A: a `strategy: matrix:` over at
-# least two Python versions, calling ./.github/workflows/reusable-tox.yml
-# once per matrix leg via `uses:` + `with:`.
-#
-# Stuck? `git checkout checkpoint/phase-a-skeleton` for the finished version.
+# PHASE B caller: same minimal matrix as Phase A, now also supplying the
+# per-stage posargs the reusable workflow's three tox stages consume.
 
 name: CI
 
@@ -31,3 +28,5 @@ jobs:
       toxenv: ${{ matrix.toxenv }}
       timeout-minutes: '5'
       xfail: ${{ matrix.xfail }}
+      tox-run-posargs: --cov-report=xml --junitxml=test-results.xml
+      tox-rerun-posargs: --no-cov --lf -vvvvv
