@@ -37,6 +37,7 @@ build, not the package.
 - GitHub Actions: [Creating a composite action](https://docs.github.com/en/actions/sharing-automations/creating-actions/creating-a-composite-action)
 - GitHub Actions: [Evaluate expressions in workflows and actions](https://docs.github.com/en/actions/reference/evaluate-expressions-in-workflows-and-actions)
 - [tox documentation](https://tox.wiki/en/stable/)
+- [re-actors/alls-green](https://github.com/re-actors/alls-green) — the branch-protection gate used in this repo's Integration block
 
 ## Local fallback
 
