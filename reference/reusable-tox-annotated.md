@@ -37,8 +37,10 @@ Two real hook implementations were fetched and verified (see
 release-automation work (patch a changelog, tag a release commit) —
 **deliberately not used as the workshop's teaching template**, because
 they're too narrow/specific to learn the general hook shape from. The
-workshop's own `post-src-checkout` hook (installing `jq`, gated on
-`toxenv == 'needs-jq'`) is purpose-built to be a cleaner first example.
+workshop's own `post-tox-run` hook (rendering coverage as a markdown job
+summary, gated on `toxenv == 'py'`) is purpose-built to be a cleaner first
+example — genuinely useful rather than an arbitrary system-package install,
+see `reference/coverage-reporting-hook.md`.
 
 No production example of the fourth hook, `post-tox-job`, was found
 anywhere during verification — it exists in the workflow but isn't yet
